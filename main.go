@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
@@ -16,9 +15,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-//var Session *session.Session = ConnectAWS()
-
-//GetEnvWithKey : get env value
+// GetEnvWithKey : get env value
 func GetEnvWithKey(key string) string {
 	return os.Getenv(key)
 }
@@ -29,13 +26,6 @@ func LoadEnv() {
 		log.Fatalf("Error loading .env file")
 	}
 }
-
-/*func ServerHeader(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		c.Response().Header().Set("sess", Session)
-		return next(c)
-	}
-}*/
 
 func main() {
 	LoadEnv()
@@ -66,7 +56,7 @@ func main() {
 	svc := s3.New(session.New(), cfg)
 
 	// Open the file
-	file, err := os.Open("gopher2_test.jpg")
+	file, err := os.Open("gopher_container.jpg")
 	if err != nil {
 		log.Println("Error al procesar imagen")
 	}
@@ -92,18 +82,23 @@ func main() {
 		Body:          fileBytes,
 		ContentLength: aws.Int64(size),
 		ContentType:   aws.String(fileType),
+		ACL:           aws.String("public-read"),
 	}
 
 	params2, _ := svc.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: aws.String("test.solicitudes"),
 		Key:    aws.String(path), //aws.String(awsSecretAccessKey),
 	})
+	log.Println(params2.Body)
 
-	urlStr, err := params2.Presign(15 * time.Minute)
-	if err != nil {
-		log.Println("Failed to sign request", err)
-	}
-	log.Println(urlStr)
+	/*
+		urlStr, err := params2.Presign(15 * time.Minute)
+		if err != nil {
+			log.Println("Failed to sign request", err)
+		}
+		log.Println(urlStr.)
+		log.Println(params2.HTTPRequest.URL.MarshalBinary())
+	*/
 
 	// Submit to AWS
 	_, err = svc.PutObject(params)
@@ -111,26 +106,6 @@ func main() {
 		fmt.Println("Error al enviar a AWS")
 	}
 	filePath := "https://" + myBucket + "." + "s3-" + awsRegion + ".amazonaws.com" + path
-	fmt.Printf("response \n  %s", awsutil.StringValue(filePath))
-
-	//session := ConnectAWS()
-
-	//e := echo.New()
-
-	//e.Use(ServerHeader)
-
-	/*e.POST("/uploadCert", func(c echo.Context, session *session.Session) error {
-		sess, _ := session.Get("session", c)
-
-		sess.Options = &sessions.Options{
-			AwsRegion:    GetEnvWithKey("AWS_REGION"),
-			AccesKey:     GetEnvWithKey("AWS_ACCESS_KEY_ID"),
-			SecretAccess: GetEnvWithKey("AWS_SECRET_ACCESS_KEY"),
-		}
-		sess.Save(c.Request(), c.Response())
-		return c.NoContent(http.StatusOK)
-	})*/
-
-	//e.Logger.Fatal(e.Start(":5000"))
+	fmt.Printf("File URL: \n  %s", awsutil.StringValue(filePath))
 
 }
